@@ -253,6 +253,11 @@ pub struct ParallHexApp {
     pub resizing_divider: Option<DividerKind>,
     pub divider_start_x: f32,
     pub divider_start_w: f32,
+    // True while a mouse-down that started a divider drag is still being
+    // dispatched: the divider's own down handler runs before the root's
+    // `on_any_mouse_down`, which would otherwise read the fresh
+    // `resizing_divider` as a stale leftover and kill the drag on press.
+    pub divider_press_in_flight: bool,
 
     // Header sliders.
     pub pixels_slider_bounds: Bounds<Pixels>,
@@ -281,6 +286,9 @@ pub struct ParallHexApp {
 }
 
 impl ParallHexApp {
+    /// One initializer line per field of a large state struct keeps this just
+    /// over the line-count lint; splitting it would only hide the shape.
+    #[allow(clippy::too_many_lines)]
     pub fn new(window: &mut Window, cx: &mut Context<Self>, initial_file: Option<PathBuf>) -> Self {
         let prefs = config::load();
         let focus_handle = cx.focus_handle();
@@ -354,6 +362,7 @@ impl ParallHexApp {
             resizing_divider: None,
             divider_start_x: 0.0,
             divider_start_w: 0.0,
+            divider_press_in_flight: false,
             pixels_slider_bounds: Bounds::default(),
             entropy_slider_bounds: Bounds::default(),
             dragging_slider: None,
@@ -1277,11 +1286,26 @@ impl ParallHexApp {
     /// started at, so `on_divider_mouse_move` can apply the pointer delta.
     fn on_divider_mouse_down(&mut self, kind: DividerKind, pos: Point<Pixels>) {
         self.resizing_divider = Some(kind);
+        // The root's `on_any_mouse_down` runs after this one; without the flag
+        // it would read the `Some` we just stored and clear it as stale.
+        self.divider_press_in_flight = true;
         self.divider_start_x = pos.x.to_f64() as f32;
         self.divider_start_w = match kind {
             DividerKind::OverviewZoom => self.overview_width,
             DividerKind::ZoomHex => self.zoom_width,
         };
+    }
+
+    /// The root's mouse-down bookkeeping for divider drags. A fresh press must
+    /// keep its resize alive: the divider's own down handler runs before the
+    /// root's, so the flag tells a just-started drag apart from one left over
+    /// by a release that happened outside the window.
+    fn consume_divider_press(&mut self) -> bool {
+        let (in_flight, resizing, cleared) =
+            consume_divider_press(self.divider_press_in_flight, self.resizing_divider);
+        self.divider_press_in_flight = in_flight;
+        self.resizing_divider = resizing;
+        cleared
     }
 
     /// Continue a divider drag from the pointer position. Returns true when a
@@ -1398,9 +1422,10 @@ impl Render for ParallHexApp {
                         cx.notify();
                     }
                     // Clear any divider resize left over from a release that
-                    // happened outside the window.
-                    if this.resizing_divider.is_some() {
-                        this.resizing_divider = None;
+                    // happened outside the window — but not one this very
+                    // press just started (the divider's down handler ran
+                    // first and flagged it).
+                    if this.consume_divider_press() {
                         cx.notify();
                     }
                 }),
@@ -1451,6 +1476,24 @@ impl Render for ParallHexApp {
 /// pointer delta, rounded to whole pixels and clamped to the column's range.
 fn divider_width(start_w: f32, dx: f32, min: f32, max: f32) -> f32 {
     (start_w + dx).round().clamp(min, max)
+}
+
+/// The root mouse-down's divider bookkeeping, pure for testing. Returns the
+/// new press flag, the new resizing state and whether a stale resize was
+/// cleared (so the caller can redraw). gpui dispatches a child's handlers
+/// before its ancestors', so on a fresh press the divider has already stored
+/// `Some(kind)` by the time this runs — the flag is what keeps that drag from
+/// being mistaken for a leftover one.
+fn consume_divider_press(
+    in_flight: bool,
+    resizing: Option<DividerKind>,
+) -> (bool, Option<DividerKind>, bool) {
+    if in_flight {
+        (false, resizing, false)
+    } else {
+        let cleared = resizing.is_some();
+        (false, None, cleared)
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1664,8 +1707,8 @@ fn pick_monospace_family(window: &Window) -> SharedString {
 #[cfg(test)]
 mod tests {
     use super::{
-        OVERVIEW_W_MAX, OVERVIEW_W_MIN, SLIDER_THUMB_W, ZOOM_W_MAX, ZOOM_W_MIN, divider_width,
-        slider_t_at_x, slider_thumb_left,
+        DividerKind, OVERVIEW_W_MAX, OVERVIEW_W_MIN, SLIDER_THUMB_W, ZOOM_W_MAX, ZOOM_W_MIN,
+        consume_divider_press, divider_width, slider_t_at_x, slider_thumb_left,
     };
 
     /// Only the zoom column zooms now, so the step is exercised over its range.
@@ -1764,6 +1807,28 @@ mod tests {
         assert_eq!(divider_width(300.0, -100_000.0, 140.0, 2000.0), 140.0);
         // The pixels column has a wider range.
         assert_eq!(divider_width(320.0, 4000.0, 200.0, 3000.0), 3000.0);
+    }
+
+    /// A press on a divider starts the drag and the root's any-mouse-down
+    /// runs second; the flag must keep that fresh resize alive rather than
+    /// clearing it (the bug that made dragging a divider do nothing).
+    #[test]
+    fn fresh_divider_press_survives_the_root_down_handler() {
+        let kind = DividerKind::ZoomHex;
+        let (in_flight, resizing, cleared) = consume_divider_press(true, Some(kind));
+        assert!(!in_flight, "the flag is single-shot");
+        assert_eq!(resizing, Some(kind), "a fresh drag must not be cleared");
+        assert!(!cleared);
+
+        // A leftover from a release outside the window is still cleaned up.
+        let (_, resizing, cleared) = consume_divider_press(false, Some(kind));
+        assert_eq!(resizing, None);
+        assert!(cleared, "a stale drag should be cleared");
+
+        // An ordinary click elsewhere touches nothing.
+        let (_, resizing, cleared) = consume_divider_press(false, None);
+        assert_eq!(resizing, None);
+        assert!(!cleared);
     }
 
     /// The "Reset columns" shortcut assigns the config defaults directly, so
