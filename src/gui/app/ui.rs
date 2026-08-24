@@ -70,6 +70,12 @@ impl ParallHexApp {
             .w(px(paint::SCROLLBAR_W))
             .h_full()
             .flex_shrink_0()
+            // The window-edge resize handles are painted above everything and
+            // claim the outer `RESIZE_EDGE_W` pixels; without this margin the
+            // handle sits on top of the strip's right side and a press there
+            // starts a window resize instead of a scroll — the drag is handed
+            // to the compositor and this scrollbar never sees it end.
+            .mr(px(RESIZE_EDGE_W))
             .cursor(CursorStyle::Arrow)
             .on_mouse_down(
                 MouseButton::Left,
