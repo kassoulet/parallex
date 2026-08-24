@@ -11,7 +11,7 @@ use std::ops::Range;
 
 use super::color::{self, Colormap, Rgb};
 
-pub(crate) const PIXEL_ZOOM_DEFAULT: f32 = 4.0;
+pub(crate) const PIXEL_ZOOM_DEFAULT: f32 = 8.0;
 
 pub(crate) const PIXEL_ZOOM_MIN: f32 = 1.0;
 

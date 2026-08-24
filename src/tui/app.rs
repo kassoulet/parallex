@@ -494,9 +494,9 @@ mod tests {
     #[test]
     fn each_panel_defines_its_own_row_length() {
         let mut app = TuiApp::for_test(4096);
-        // Zoom: at the default 4 px per byte, a row is the column width over
-        // the zoom -- 32 cells / 4 px = 8 bytes.
-        assert_eq!(app.bpr_for(Focus::Zoom), 8);
+        // Zoom: at the default 8 px per byte, a row is the column width over
+        // the zoom -- 32 cells / 8 px = 4 bytes.
+        assert_eq!(app.bpr_for(Focus::Zoom), 4);
         // A coarser zoom shows fewer bytes per row.
         app.pixel_zoom = 2.0;
         assert_eq!(app.bpr_for(Focus::Zoom), 16);

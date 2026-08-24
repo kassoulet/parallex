@@ -208,7 +208,7 @@ load, so an edited or older file can never prevent startup.
 | Key | Default | Range |
 |---|---|---|
 | `entropy_window` | `256` | 16–4096 bytes |
-| `pixel_zoom` | `4` | 1–24 px per byte |
+| `pixel_zoom` | `8` | 1–24 px per byte |
 | `overview_colormap` | `entropy` | `none`, `value`, `class`, `entropy` |
 | `zoom_colormap` | `value` | as above |
 | `hex_colormap` | `class` | as above |
