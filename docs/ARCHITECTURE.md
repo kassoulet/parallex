@@ -5,21 +5,25 @@ break by accident. For what the app *does*, see [../README.md](../README.md).
 
 ## Module layout
 
-A library with two thin binaries on top. The layering has one governing rule:
+A library with three frontends on top — two native binaries and a wasm site for
+GitHub Pages. The layering has one governing rule:
 
-> **`core` may not name a UI toolkit.** Both frontends depend on it, and the
+> **`core` may not name a UI toolkit.** Every frontend depends on it, the
 > terminal one must build on hosts that lack gpui's link-time libraries
-> (`libfreetype`, `libxcb`, `libxkbcommon`). CI asserts gpui cannot reach a
-> TUI-only dependency tree.
+> (`libfreetype`, `libxcb`, `libxkbcommon`), and the web one must build for
+> `wasm32-unknown-unknown`, where none of those exist at all. CI asserts gpui
+> cannot reach a TUI-only dependency tree, and trunk builds the site with
+> `--no-default-features` so the desktop toolkits cannot reach the browser.
 
 ```
 src/
   lib.rs        crate root: the curated #![allow(...)] set, feature gates
-  core/         toolkit-neutral -- no gpui, no ratatui
+  core/         toolkit-neutral -- no gpui, no ratatui, no web-sys
     cli.rs      Cli, parse_args(args, bin_name)
     color.rs    Rgb, class_color, entropy_color, fg_for_bg, Colormap
     config.rs   hand-rolled `key = value` preferences, no serde
     entropy.rs  Shannon entropy; block_entropies runs under rayon
+                (serially under wasm, which has no data parallelism)
     geom.rs     RowGeo, bytes-per-row, the anchor maths, entropy_at,
                 ByteSource, Nav/nav_next, hit-testing, selection_text
     thumb.rs    build_overview_rgba, build_zoom_rgba -> plain Vec<u8>
@@ -36,6 +40,13 @@ src/
     blit.rs     half-block blitter, base64, OSC 52
     input.rs    key_to_action -- the keymap, as a pure function
     render.rs   the three columns
+  web/          #[cfg(feature = "web-frontend")], served by GitHub Pages
+    mod.rs      wasm_bindgen entry points, thread-local app, event wiring
+    app.rs      the state machine: shared anchor, drags, keyboard nav
+    layout.rs   pure column layout + divider hit-testing (host-testable)
+    render.rs   Canvas2D painting over the core thumbnail buffers
+web/index.html  the site shell; the <link data-trunk rel="rust"> drives trunk
+Trunk.toml      trunk config: index, dist dir, relative public URL
 src/bin/parallhex-gpui.rs   shim
 src/bin/parallhex-tui.rs    shim
 ```
@@ -44,11 +55,11 @@ src/bin/parallhex-tui.rs    shim
 
 Two consequences of the rule worth knowing:
 
-- **The public surface is deliberately tiny** — only `core::cli`, `gui::run` and
-  `tui::run`. Several `clippy::pedantic` lints (`must_use_candidate`,
-  `missing_errors_doc`, `missing_panics_doc`, `module_name_repetitions`) fire only
-  on publicly reachable items, and `Cargo.toml` denies pedantic, so widening the
-  surface enables them wholesale.
+- **The public surface is deliberately tiny** — only `core::cli`, `gui::run`,
+  `tui::run` and the `web` entry points. Several `clippy::pedantic` lints
+  (`must_use_candidate`, `missing_errors_doc`, `missing_panics_doc`,
+  `module_name_repetitions`) fire only on publicly reachable items, and
+  `Cargo.toml` denies pedantic, so widening the surface enables them wholesale.
 - **`lib.rs` allows `dead_code` when the gpui frontend is off.** `core` carries
   geometry only one frontend uses — the scrollbar maths and the zoom column's
   redistribution are gpui-only — so a TUI-only build legitimately leaves part of
@@ -57,7 +68,7 @@ Two consequences of the rule worth knowing:
 Per-byte entropy is never stored — only one value per block. `core::geom::entropy_at`
 interpolates between neighbouring blocks on demand.
 
-## What the two frontends share
+## What the frontends share
 
 Everything about what a byte *means*: its colour, its entropy, which row and
 column it occupies, what an arrow key does to the cursor, and how a copied range
@@ -70,13 +81,45 @@ real bet:
   `gutter = 0.0, char_w = 1.0` the arithmetic yields `cell_w = 3.0` (`"HH "`) and
   `hex_start = 10.0` — exactly a terminal's 8-digit address plus two spaces. So
   cell positions, 8-byte group gaps and the digits-only colouring are shared
-  verbatim between a pixel canvas and a character grid.
-- **The terminal reuses the RGBA thumbnail generators.** `build_overview_rgba` is
-  asked for `h = rows * 2`, and `build_zoom_rgba` with `block = 1.0` already emits
-  one pixel per byte. `tui::blit` then renders two pixel rows per text row as `▀`,
-  foreground the upper pixel and background the lower. Alpha 0 becomes
-  `Color::Reset`, which is how `Colormap::None` mutes a panel rather than blanking
-  it — the same meaning transparent pixels carry on the gpui side.
+  verbatim between a pixel canvas and a character grid. The web frontend is the
+  third consumer: it measures the browser's monospace glyph and passes that,
+  like the gpui build does.
+- **The terminal and the web reuse the RGBA thumbnail generators.**
+  `build_overview_rgba` is asked for `h = rows * 2` by the terminal, and
+  `build_zoom_rgba` with `block = 1.0` already emits one pixel per byte;
+  `tui::blit` then renders two pixel rows per text row as `▀`, foreground the
+  upper pixel and background the lower. The web build blits the very same
+  buffers through `ImageData` + `draw_image` with smoothing off. Alpha 0 becomes
+  `Color::Reset` in the terminal, which is how `Colormap::None` mutes a panel
+  rather than blanking it — the same meaning transparent pixels carry on the
+  gpui side.
+
+## The web frontend
+
+`trunk build --release` (config in `Trunk.toml`, shell in `web/index.html`)
+compiles the *library* as a `cdylib` for `wasm32-unknown-unknown` with only
+`web-frontend` on, runs wasm-bindgen with the CLI version taken from
+`Cargo.lock` (so crate and CLI cannot drift), and assembles `dist/` for GitHub
+Pages (`.github/workflows/pages.yml`). Things that bite:
+
+- **wasm has no data parallelism.** rayon needs threads; the browser main thread
+  has none (short of cross-origin isolation). `core::entropy::block_entropies`
+  and `core::thumb`'s row fill therefore have `#[cfg(target_family = "wasm")]`
+  serial paths with identical per-item work. The entropy pass runs synchronously
+  on file load — sub-second for typical files, and the desktop frontends' async
+  streaming would need a worker + SharedArrayBuffer to replicate.
+- **A wasm-bindgen export may not be named `start`.** The name is reserved for
+  the module's automatic start hook; the boot function is `parallhex_start`.
+- **Trunk injects its own init module** and dispatches `TrunkApplicationStarted`
+  when the wasm is live; the shell's classic (non-module) script listens for it
+  and calls `parallhex_start` — a classic script runs before any module, so the
+  listener is registered in time.
+- **`public_url = "./"`** keeps asset URLs relative, so the site works when
+  Pages serves it from a project subpath (`github.io/<repo>/`).
+- The web module still compiles on the host (`web-sys` is inert without a
+  browser), so `web/layout.rs`'s pure maths is unit-tested and linted by the
+  ordinary host commands; only the wasm build (`trunk build`, CI job `web`)
+  exercises the browser-facing code.
 
 ## The canvas pattern
 
@@ -126,8 +169,8 @@ flooring first is off by one row.
 
 ## The shared scroll contract
 
-All three columns share **one byte anchor** — `scroll_offset` in the gpui
-frontend, `anchor` in the terminal one, both driving the same `core::geom`
+All three columns share **one byte anchor** — `scroll_offset` in the gpui and
+web frontends, `anchor` in the terminal one, all driving the same `core::geom`
 helpers. They cannot share
 a row number, because each column derives its own bytes-per-row from its own
 measured width, so their rows do not line up.
@@ -245,9 +288,12 @@ as `JUMP_BUTTON_LABEL`.
   and unit-test it; keep `gui::app::ui` and `tui::render` limited to wiring state
   into it. If the change is unit-aware, take the unit as a parameter (as `RowGeo`
   does with its gutter) rather than branching on the frontend.
-- **Anything touching `core`** — check both frontends still build:
-  `cargo test --all-targets` covers the default configuration, and
-  `cargo test --no-default-features --features tui-frontend` the gpui-free one.
+- **Anything touching `core`** — check the other frontends still build:
+  `cargo test --all-targets` covers the default configuration,
+  `cargo test --no-default-features --features tui-frontend` the gpui-free one,
+  and `cargo test --no-default-features --features web-frontend` the web one
+  (host-compilable; the browser-facing paths need `trunk build`, which CI's
+  `web` job runs).
 
 ## Testing
 

@@ -11,6 +11,9 @@ license = "MIT OR Apache-2.0"
 [lib]
 name = "parallhex"
 path = "src/lib.rs"
+# `cdylib` is what wasm-bindgen consumes for the web frontend; `rlib` keeps the
+# host binaries and tests building exactly as before.
+crate-type = ["cdylib", "rlib"]
 
 [[bin]]
 name = "parallhex-gpui"
@@ -38,10 +41,45 @@ rfd = { version = "0.14", optional = true }
 # needs no separate crossterm dependency and the two versions cannot drift.
 ratatui = { version = "0.27", optional = true }
 
+# The web frontend compiles to wasm32-unknown-unknown and talks to the browser
+# through web-sys. Versions float; the Pages workflow builds with trunk, which
+# reads Cargo.lock and installs the matching wasm-bindgen-cli, so the CLI can
+# never drift from the crate's runtime version.
+wasm-bindgen = { version = "0.2", optional = true }
+wasm-bindgen-futures = { version = "0.4", optional = true }
+js-sys = { version = "0.3", optional = true }
+web-sys = { version = "0.3", optional = true, features = [
+    "CanvasRenderingContext2d",
+    "Document",
+    "DomRect",
+    "console",
+    "Element",
+    "Event",
+    "EventTarget",
+    "File",
+    "FileList",
+    "DragEvent",
+    "DataTransfer",
+    "HtmlCanvasElement",
+    "HtmlElement",
+    "HtmlInputElement",
+    "ImageData",
+    "KeyboardEvent",
+    "Location",
+    "MouseEvent",
+    "TextMetrics",
+    "Request",
+    "Response",
+    "UrlSearchParams",
+    "Window",
+    "WheelEvent",
+] }
+
 [features]
 default = ["gpui-frontend", "tui-frontend"]
 gpui-frontend = ["gpui", "image", "rfd"]
 tui-frontend = ["ratatui"]
+web-frontend = ["dep:wasm-bindgen", "dep:wasm-bindgen-futures", "dep:js-sys", "dep:web-sys"]
 
 # Warnings-as-errors for both the compiler and clippy's pedantic group.
 #

@@ -1,0 +1,60 @@
+name: pages
+
+# Build the web frontend and publish it to GitHub Pages on every push to main.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One Pages deployment at a time; a newer push replaces an in-flight one.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      # Trunk compiles for wasm, runs the matching wasm-bindgen CLI (fetched
+      # from Cargo.lock, so crate and CLI cannot drift) and assembles `dist/`.
+      - uses: jetli/trunk-action@v0.5.0
+        with:
+          version: latest
+
+      - name: Build web site
+        run: trunk build --release
+
+      # Pages serves the artifact verbatim; without this Jekyll would drop
+      # files it considers generated (none of ours are, but the flag is free).
+      - name: Disable Jekyll
+        run: touch dist/.nojekyll
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

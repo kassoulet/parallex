@@ -1,5 +1,6 @@
 //! Shannon entropy (in bits per byte) computed over byte windows.
 
+#[cfg(not(target_family = "wasm"))]
 use rayon::prelude::*;
 
 /// Shannon entropy of a byte slice, normalized to `[0.0, 8.0]` bits per byte.
@@ -22,14 +23,33 @@ pub fn block_entropy(data: &[u8]) -> f32 {
     h
 }
 
-/// Entropy of every contiguous `window`-sized block of `data`, in parallel.
-/// One value per block; pixel entropy is then looked up (and optionally
-/// interpolated) per byte from this cache.
+/// Entropy of every contiguous `window`-sized block of `data`. One value per
+/// block; pixel entropy is then looked up (and optionally interpolated) per
+/// byte from this cache.
+///
+/// The host path runs under rayon. Wasm has no data parallelism on the main
+/// thread (rayon needs threads, which need cross-origin isolation), so the
+/// browser build runs the same map serially — the per-block work is identical,
+/// only the scheduling differs.
+#[cfg(not(target_family = "wasm"))]
 pub fn block_entropies(data: &[u8], window: usize) -> Vec<f32> {
     let w = window.max(1);
     let nblocks = data.len().div_ceil(w);
     (0..nblocks)
         .into_par_iter()
+        .map(|b| {
+            let start = b * w;
+            let end = (start + w).min(data.len());
+            block_entropy(&data[start..end])
+        })
+        .collect()
+}
+
+#[cfg(target_family = "wasm")]
+pub fn block_entropies(data: &[u8], window: usize) -> Vec<f32> {
+    let w = window.max(1);
+    let nblocks = data.len().div_ceil(w);
+    (0..nblocks)
         .map(|b| {
             let start = b * w;
             let end = (start + w).min(data.len());

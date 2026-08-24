@@ -99,3 +99,38 @@ jobs:
       # And the core on its own, with no frontend at all.
       - name: cargo test (core only)
         run: cargo test --locked --no-default-features
+
+      # The web frontend compiles on the host too (web-sys is inert without a
+      # browser), so its pure layout maths is tested and linted by the ordinary
+      # commands — no wasm toolchain needed for this gate.
+      - name: cargo test (web frontend, host)
+        run: cargo test --locked --no-default-features --features web-frontend --all-targets
+
+  web:
+    name: trunk build (wasm)
+    # The Pages workflow builds the site on push to main; this job proves every
+    # branch push still compiles for wasm, including the no-gpui-in-wasm
+    # property (the desktop toolkits must never be pulled into the browser
+    # build — trunk passes --no-default-features, and this asserts it holds).
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        run: |
+          if ! command -v rustup >/dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+              | sh -s -- -y --profile minimal --default-toolchain stable
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+            export PATH="$HOME/.cargo/bin:$PATH"
+          fi
+          rustup target add wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: jetli/trunk-action@v0.5.0
+        with:
+          version: latest
+
+      - name: trunk build --release
+        run: trunk build --release

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Parall-Hex</title>
+  <!-- Trunk: build the crate for wasm32 with only the web frontend (the
+       desktop toolkits don't compile for wasm) and inject the glue. -->
+  <link data-trunk rel="rust" href="../Cargo.toml" data-cargo-no-default-features
+        data-cargo-features="web-frontend" data-wasm-opt="0">
+  <script>
+    addEventListener("error", (e) => { document.title = "ERR: " + e.message; });
+    addEventListener("unhandledrejection", (e) => { document.title = "REJ: " + e.reason; });
+    // Trunk's injected module initializes the wasm and then dispatches this
+    // event; `start` boots the app. A classic script runs before any module,
+    // so the listener is in place in time.
+    addEventListener("TrunkApplicationStarted", () => { document.title = "started"; window.wasmBindings.parallhex_start(); }, { once: true });
+  </script>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #16161e; }
+    #parallhex { display: block; width: 100vw; height: 100vh; cursor: default; }
+    #toolbar {
+      position: fixed; top: 0; right: 0; display: flex; gap: 8px; align-items: center;
+      padding: 4px 8px; z-index: 10;
+      font: 12px system-ui, sans-serif; color: #565f89;
+    }
+    #toolbar .button {
+      display: inline-block; padding: 3px 10px; border-radius: 4px;
+      background: #1a1b26; color: #c0caf5; cursor: pointer; user-select: none;
+    }
+    #toolbar .button:hover { background: #3b4261; }
+    #toolbar input[type="file"] { display: none; }
+  </style>
+</head>
+<body>
+  <canvas id="parallhex"></canvas>
+  <div id="toolbar">
+    <span>or drop a file anywhere</span>
+    <label class="button">Open file…<input type="file" id="file"></label>
+  </div>
+</body>
+</html>

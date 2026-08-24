@@ -45,3 +45,9 @@ pub mod gui;
 
 #[cfg(feature = "tui-frontend")]
 pub mod tui;
+
+// Gated on the feature only: wasm-bindgen/web-sys compile on the host (the
+// entry points simply need a browser at runtime), which keeps the web module's
+// pure layout maths unit-testable and linted by the ordinary host commands.
+#[cfg(feature = "web-frontend")]
+pub mod web;

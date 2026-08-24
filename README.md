@@ -28,18 +28,20 @@ padding in the zoom column, and the exact bytes in hex.
 Files are `mmap`ed and every column paints only what is on screen, so a
 multi-gigabyte file opens instantly and costs no more to scroll than a small one.
 
-## Two frontends
+## Three frontends
 
-The same three columns over the same file, in a window or in a terminal:
+The same three columns over the same file — in a window, in a terminal, or in
+the browser:
 
 | Binary | Toolkit | Notes |
 |---|---|---|
 | `parallhex-gpui` | [gpui](https://crates.io/crates/gpui) | The full app: mouse, resizable columns, a zoom control. |
 | `parallhex-tui` | [ratatui](https://ratatui.rs) | Keyboard-driven, over ssh or on a headless host. |
+| `parallhex-web` | wasm + Canvas2D | The site this README's project pages serve; open a file or drop one anywhere. |
 
-Both share all the byte-level semantics — colours, entropy, row geometry, the
+All three share the byte-level semantics — colours, entropy, row geometry, the
 scroll anchor — so they cannot disagree about what a byte looks like or where it
-sits. They also share one preferences file.
+sits. The two native ones also share one preferences file.
 
 ## Build and run
 
@@ -68,6 +70,20 @@ cargo build --no-default-features --features tui-frontend
 ```
 
 CI asserts that gpui cannot reach that build's dependency tree.
+
+### The web app
+
+```sh
+cargo install trunk && trunk serve     # http://localhost:8080
+trunk build --release                  # static site in dist/
+```
+
+`trunk serve` hot-reloads; `dist/` is what GitHub Pages publishes
+(`.github/workflows/pages.yml`). The site takes files three ways: the
+**Open file…** button, dropping one anywhere on the page, or a `?file=<url>`
+query parameter that fetches a URL at boot — so a page can link a demo binary
+directly. The browser build computes entropy serially on load (wasm has no
+rayon), so multi-hundred-MB files take a moment the native builds don't.
 
 ## Terminal frontend
 

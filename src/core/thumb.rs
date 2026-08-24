@@ -4,10 +4,11 @@
 //! testable without a window, and so a terminal frontend can consume the same
 //! buffers (rendering two pixel rows per text row as half-block characters).
 
-use rayon::prelude::*;
-
 use super::color::Rgb;
 use super::geom::ByteSource;
+
+#[cfg(not(target_family = "wasm"))]
+use rayon::prelude::*;
 
 /// Average byte value over `[start, end)`, sampled at a few points (a
 /// thumbnail cell can cover many bytes).
@@ -92,7 +93,8 @@ pub(crate) fn build_zoom_rgba(
     let mut pixels = vec![0u8; iw * ih * 4];
 
     // Row y-ranges from the quantized grid, then disjoint mutable slices so
-    // the fill can run in parallel over rows under rayon.
+    // the fill can run in parallel over rows under rayon. On wasm the same
+    // slices just fill serially (see `entropy::block_entropies`).
     let row_ys: Vec<(usize, usize)> = (0..rows)
         .map(|r| {
             let y0 = (r as f32 * block).round() as usize;
@@ -109,7 +111,33 @@ pub(crate) fn build_zoom_rgba(
         rest = tail;
     }
 
-    slices.into_par_iter().for_each(|(r, buf)| {
+    // The same per-row fill runs under rayon on the host and serially on wasm,
+    // where threads (and therefore rayon) are unavailable on the main thread.
+    #[cfg(not(target_family = "wasm"))]
+    slices
+        .into_par_iter()
+        .for_each(fill_row(src, first_row_start, bpr, &row_ys, iw, block));
+
+    #[cfg(target_family = "wasm")]
+    slices
+        .into_iter()
+        .for_each(fill_row(src, first_row_start, bpr, &row_ys, iw, block));
+
+    (pixels, iw, ih)
+}
+
+/// The per-row fill shared by the rayon and serial paths of `build_zoom_rgba`.
+#[allow(clippy::too_many_arguments)]
+fn fill_row<'a>(
+    src: &'a ByteSource<'a>,
+    first_row_start: usize,
+    bpr: usize,
+    row_ys: &'a [(usize, usize)],
+    iw: usize,
+    block: f32,
+) -> impl Fn((usize, &mut [u8])) + Send + Sync + 'a {
+    let len = src.len();
+    move |(r, buf): (usize, &mut [u8])| {
         let row_start = first_row_start + r * bpr;
         if row_start >= len {
             return;
@@ -139,8 +167,7 @@ pub(crate) fn build_zoom_rgba(
                 }
             }
         }
-    });
-    (pixels, iw, ih)
+    }
 }
 
 #[cfg(test)]

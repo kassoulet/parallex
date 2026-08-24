@@ -3695,10 +3695,14 @@ version = "0.1.0"
 dependencies = [
  "gpui",
  "image",
+ "js-sys",
  "memmap2",
  "ratatui",
  "rayon",
  "rfd",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]

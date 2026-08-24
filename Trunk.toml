@@ -1,0 +1,16 @@
+# Trunk builds the web frontend: `trunk build` compiles the lib for
+# wasm32-unknown-unknown, runs wasm-bindgen with the CLI version matching
+# Cargo.lock (so the CLI can never drift from the crate), and assembles the
+# static site this file describes into `dist/` — the directory GitHub Pages
+# publishes.
+[build]
+# The HTML shell trunk expands; wasm goes to wasm32-unknown-unknown by default.
+target = "web/index.html"
+dist = "dist"
+# Relative asset URLs, so the site works when Pages serves it from a project
+# subpath (github.io/<repo>/).
+public_url = "./"
+
+[serve]
+# `trunk serve` for local development.
+port = 8080
