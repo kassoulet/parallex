@@ -73,6 +73,13 @@ CI asserts that gpui cannot reach that build's dependency tree.
 
 ### The web app
 
+A very basic web frontend that displays entropy maps for user-supplied files.
+No account is required, nothing is stored on the server.
+Available at https://kassoulet.github.io/parallhex/
+
+![The webapp frontend showing a pdf: an entropy overview, a byte-value
+zoom column, and class-coloured hex](docs/screenshot-web.png)
+
 ```sh
 cargo install trunk && trunk serve     # http://localhost:8080
 trunk build --release                  # static site in dist/
