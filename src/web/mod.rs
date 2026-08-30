@@ -56,26 +56,26 @@ pub(crate) fn request_frame() {
 
 // ----- entry points ---------------------------------------------------------
 
-/// Boot the app: take over `#parallhex`, size it to the window and wire every
+/// Boot the app: take over `#parallex`, size it to the window and wire every
 /// event listener. Called once from `index.html` after the wasm module loads.
 ///
-/// (Named `parallhex_start` rather than `start`: wasm-bindgen reserves a
+/// (Named `parallex_start` rather than `start`: wasm-bindgen reserves a
 /// function called `start` as the module's automatic start hook instead of
 /// exporting it.)
 ///
 /// # Panics
 ///
-/// When `#parallhex` is missing from the document or is not a canvas — a
+/// When `#parallex` is missing from the document or is not a canvas — a
 /// build/packaging mistake, so failing loudly is correct.
 #[wasm_bindgen]
-pub fn parallhex_start() {
+pub fn parallex_start() {
     let window = web_sys::window().expect("no window");
     let document = window.document().expect("no document");
     let canvas = document
-        .get_element_by_id("parallhex")
-        .expect("#parallhex canvas")
+        .get_element_by_id("parallex")
+        .expect("#parallex canvas")
         .dyn_into::<HtmlCanvasElement>()
-        .expect("#parallhex is a canvas");
+        .expect("#parallex is a canvas");
 
     // Measure the monospace glyph once; every horizontal position in the hex
     // column derives from it, exactly like the gpui frontend's `hex_char_w`.

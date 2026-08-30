@@ -80,9 +80,9 @@ fn config_dir() -> Option<PathBuf> {
     None
 }
 
-/// Path of the preferences file (e.g. `~/.config/parallhex/config.txt`).
+/// Path of the preferences file (e.g. `~/.config/parallex/config.txt`).
 pub fn path() -> Option<PathBuf> {
-    config_dir().map(|d| d.join("parallhex").join("config.txt"))
+    config_dir().map(|d| d.join("parallex").join("config.txt"))
 }
 
 /// Parse a preferences file. Unknown keys, malformed values and non-finite
@@ -173,7 +173,7 @@ pub fn serialize(cfg: &Config) -> String {
     use std::fmt::Write as _;
     let mut out = String::new();
     // `write!` into a `String` cannot fail; discard the `Result` it returns.
-    let _ = writeln!(out, "# Parall-Hex preferences");
+    let _ = writeln!(out, "# Parallex preferences");
     let _ = writeln!(out, "entropy_window = {}", cfg.entropy_window);
     let _ = writeln!(out, "pixel_zoom = {}", cfg.pixel_zoom);
     let _ = writeln!(out, "overview_colormap = {}", cfg.overview_colormap.key());
@@ -333,7 +333,7 @@ mod tests {
         assert_eq!(cfg.zoom_width, 320.0);
     }
 
-    /// The persisted defaults must survive the clamps `ParallHexApp::new`
+    /// The persisted defaults must survive the clamps `ParallexApp::new`
     /// applies on load, or a fresh config would be silently rewritten.
     #[test]
     fn default_zoom_is_within_its_clamp() {

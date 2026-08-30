@@ -36,7 +36,7 @@ pub fn run(file: Option<PathBuf>) -> io::Result<()> {
     // is required rather than optional.
     let Some(path) = file else {
         return Err(io::Error::other(
-            "no file given; usage: parallhex-tui [FILE]",
+            "no file given; usage: parallex-tui [FILE]",
         ));
     };
     let mut app = TuiApp::new(&path)?;

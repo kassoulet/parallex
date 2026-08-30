@@ -1,6 +1,6 @@
 # Architecture
 
-How Parall-Hex is put together, and the handful of invariants that are easy to
+How Parallex is put together, and the handful of invariants that are easy to
 break by accident. For what the app *does*, see [../README.md](../README.md).
 
 ## Module layout
@@ -29,7 +29,7 @@ src/
     thumb.rs    build_overview_rgba, build_zoom_rgba -> plain Vec<u8>
   gui/          #[cfg(feature = "gpui-frontend")]
     mod.rs      actions!, key_bindings, DECORATIONS, restored_bounds, run()
-    app.rs      ParallHexApp: all state, handlers, async work, Render
+    app.rs      ParallexApp: all state, handlers, async work, Render
     app/ui.rs   view construction: bars, columns, dialog, chrome
     jump.rs     JumpField -- gpui 0.2 has no text input, so the
                 caret/selection/IME plumbing is ours
@@ -47,8 +47,8 @@ src/
     render.rs   Canvas2D painting over the core thumbnail buffers
 web/index.html  the site shell; the <link data-trunk rel="rust"> drives trunk
 Trunk.toml      trunk config: index, dist dir, relative public URL
-src/bin/parallhex-gpui.rs   shim
-src/bin/parallhex-tui.rs    shim
+src/bin/parallex-gpui.rs   shim
+src/bin/parallex-tui.rs    shim
 ```
 
 `mod gui`, not `mod gpui`, so the module cannot shadow the crate.
@@ -109,10 +109,10 @@ Pages (`.github/workflows/pages.yml`). Things that bite:
   on file load — sub-second for typical files, and the desktop frontends' async
   streaming would need a worker + SharedArrayBuffer to replicate.
 - **A wasm-bindgen export may not be named `start`.** The name is reserved for
-  the module's automatic start hook; the boot function is `parallhex_start`.
+  the module's automatic start hook; the boot function is `parallex_start`.
 - **Trunk injects its own init module** and dispatches `TrunkApplicationStarted`
   when the wasm is live; the shell's classic (non-module) script listens for it
-  and calls `parallhex_start` — a classic script runs before any module, so the
+  and calls `parallex_start` — a classic script runs before any module, so the
   listener is registered in time.
 - **`public_url = "./"`** keeps asset URLs relative, so the site works when
   Pages serves it from a project subpath (`github.io/<repo>/`).
@@ -279,7 +279,7 @@ as `JUMP_BUTTON_LABEL`.
   reach it (which is deliberate for `ResetSettings` and `ClearSelection`).
 - **New persisted preference** — a `core::config::Config` field, its `Default`, a
   `parse` match arm, a `serialize` line, `current_config()`, the clamp in
-  `ParallHexApp::new` (and `TuiApp::new`), and the table in the README. `parse_round_trip` in
+  `ParallexApp::new` (and `TuiApp::new`), and the table in the README. `parse_round_trip` in
   `core/config.rs` covers the round trip.
 - **New terminal key** — two places: a variant in `tui::app::Action` with its arm
   in `apply`, and the binding in `tui::input::key_to_action`. Both are pure, so

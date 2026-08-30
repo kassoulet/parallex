@@ -1,11 +1,11 @@
-# Parall-Hex
+# Parallex
 
-[![CI](https://github.com/kassoulet/parallhex/actions/workflows/ci.yml/badge.svg)](https://github.com/kassoulet/parallhex/actions/workflows/ci.yml)
+[![CI](https://github.com/kassoulet/parallex/actions/workflows/ci.yml/badge.svg)](https://github.com/kassoulet/parallex/actions/workflows/ci.yml)
 
 A native binary/hex explorer: one wide window showing the same region of a file
 through three synchronized columns.
 
-![Parall-Hex showing libc.so.6: an entropy overview of the whole file, a
+![Parallex showing libc.so.6: an entropy overview of the whole file, a
 byte-class pixel map, and class-coloured hex with a selection](docs/screenshot.png)
 
 *`libc.so.6` at offset 0. The overview (left) maps entropy over the whole 2 MiB —
@@ -35,9 +35,9 @@ the browser:
 
 | Binary | Toolkit | Notes |
 |---|---|---|
-| `parallhex-gpui` | [gpui](https://crates.io/crates/gpui) | The full app: mouse, resizable columns, a zoom control. |
-| `parallhex-tui` | [ratatui](https://ratatui.rs) | Keyboard-driven, over ssh or on a headless host. |
-| `parallhex-web` | wasm + Canvas2D | The site this README's project pages serve; open a file or drop one anywhere. |
+| `parallex-gpui` | [gpui](https://crates.io/crates/gpui) | The full app: mouse, resizable columns, a zoom control. |
+| `parallex-tui` | [ratatui](https://ratatui.rs) | Keyboard-driven, over ssh or on a headless host. |
+| `parallex-web` | wasm + Canvas2D | The site this README's project pages serve; open a file or drop one anywhere. |
 
 All three share the byte-level semantics — colours, entropy, row geometry, the
 scroll anchor — so they cannot disagree about what a byte looks like or where it
@@ -48,10 +48,10 @@ sits. The two native ones also share one preferences file.
 Requires a Rust toolchain supporting edition 2024.
 
 ```sh
-cargo run --bin parallhex-gpui                        # windowed, no file
-cargo run --bin parallhex-gpui -- path/to/file.bin    # open a file
-cargo run --bin parallhex-tui  -- path/to/file.bin    # in the terminal
-cargo run --release --bin parallhex-gpui              # prefer release for large files
+cargo run --bin parallex-gpui                        # windowed, no file
+cargo run --bin parallex-gpui -- path/to/file.bin    # open a file
+cargo run --bin parallex-tui  -- path/to/file.bin    # in the terminal
+cargo run --release --bin parallex-gpui              # prefer release for large files
 ```
 
 `--` is needed before a filename that begins with a dash. `-h` / `--help` prints
@@ -60,7 +60,7 @@ ignored. The windowed frontend can start with no file and open one from a dialog
 the terminal one requires a path, since it has no dialog to fall back on.
 
 The executables are named for their toolkits so they can sit alongside another
-`parallhex` build. The preferences directory stays `parallhex` for both.
+`parallex` build. The preferences directory stays `parallex` for both.
 
 **Building the terminal frontend alone** needs none of gpui's link-time
 libraries, which is the point of it:
@@ -75,7 +75,7 @@ CI asserts that gpui cannot reach that build's dependency tree.
 
 A very basic web frontend that displays entropy maps for user-supplied files.
 No account is required, nothing is stored on the server.
-Available at https://kassoulet.github.io/parallhex/
+Available at https://kassoulet.github.io/parallex/
 
 ![The webapp frontend showing a pdf: an entropy overview, a byte-value
 zoom column, and class-coloured hex](docs/screenshot-web.png)
@@ -220,9 +220,9 @@ top-bar button and `Alt`+right-click respectively.
 ## Preferences
 
 Written to `config.txt` in the platform config directory — on Linux
-`$XDG_CONFIG_HOME/parallhex/config.txt` (falling back to `~/.config`), on
-Windows `%APPDATA%\parallhex\`, on macOS
-`~/Library/Application Support/parallhex/`.
+`$XDG_CONFIG_HOME/parallex/config.txt` (falling back to `~/.config`), on
+Windows `%APPDATA%\parallex\`, on macOS
+`~/Library/Application Support/parallex/`.
 
 It is a plain `key = value` text file, safe to hand-edit: unknown keys,
 malformed lines and non-finite numbers are skipped, and values are clamped on

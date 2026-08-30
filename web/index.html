@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Parall-Hex</title>
+  <title>Parallex</title>
   <!-- Trunk: build the crate for wasm32 with only the web frontend (the
        desktop toolkits don't compile for wasm) and inject the glue. -->
   <link data-trunk rel="rust" href="../Cargo.toml" data-cargo-no-default-features
@@ -14,11 +14,11 @@
     // Trunk's injected module initializes the wasm and then dispatches this
     // event; `start` boots the app. A classic script runs before any module,
     // so the listener is in place in time.
-    addEventListener("TrunkApplicationStarted", () => { document.title = "started"; window.wasmBindings.parallhex_start(); }, { once: true });
+    addEventListener("TrunkApplicationStarted", () => { document.title = "started"; window.wasmBindings.parallex_start(); }, { once: true });
   </script>
   <style>
     html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #16161e; }
-    #parallhex { display: block; width: 100vw; height: 100vh; cursor: default; }
+    #parallex { display: block; width: 100vw; height: 100vh; cursor: default; }
     #toolbar {
       position: fixed; top: 0; right: 0; display: flex; gap: 8px; align-items: center;
       padding: 4px 8px; z-index: 10;
@@ -33,7 +33,7 @@
   </style>
 </head>
 <body>
-  <canvas id="parallhex"></canvas>
+  <canvas id="parallex"></canvas>
   <div id="toolbar">
     <span>or drop a file anywhere</span>
     <label class="button">Open file…<input type="file" id="file"></label>

@@ -143,7 +143,7 @@ fn draw_overview(app: &mut App, ctx: &CanvasRenderingContext2d, l: &Layout) {
             .expect("no window")
             .document()
             .expect("no document");
-        let scratch = scratch_canvas(&document, "parallhex-scratch-overview");
+        let scratch = scratch_canvas(&document, "parallex-scratch-overview");
         blit_rgba(
             ctx,
             &scratch,
@@ -195,7 +195,7 @@ fn draw_zoom(app: &mut App, ctx: &CanvasRenderingContext2d, l: &Layout) {
             .expect("no window")
             .document()
             .expect("no document");
-        let scratch = scratch_canvas(&document, "parallhex-scratch-zoom");
+        let scratch = scratch_canvas(&document, "parallex-scratch-zoom");
         blit_rgba(
             ctx,
             &scratch,

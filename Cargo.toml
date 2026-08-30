@@ -1,28 +1,28 @@
 [package]
-name = "parallhex"
+name = "parallex"
 version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 
 # The executable is named for its toolkit so a gpui build can sit alongside
-# another parallhex binary without clashing. Only the *binary* is renamed: the
-# package, the `actions!` namespace and the config directory stay `parallhex`, so
+# another parallex binary without clashing. Only the *binary* is renamed: the
+# package, the `actions!` namespace and the config directory stay `parallex`, so
 # an existing preferences file is still found.
 [lib]
-name = "parallhex"
+name = "parallex"
 path = "src/lib.rs"
 # `cdylib` is what wasm-bindgen consumes for the web frontend; `rlib` keeps the
 # host binaries and tests building exactly as before.
 crate-type = ["cdylib", "rlib"]
 
 [[bin]]
-name = "parallhex-gpui"
-path = "src/bin/parallhex-gpui.rs"
+name = "parallex-gpui"
+path = "src/bin/parallex-gpui.rs"
 required-features = ["gpui-frontend"]
 
 [[bin]]
-name = "parallhex-tui"
-path = "src/bin/parallhex-tui.rs"
+name = "parallex-tui"
+path = "src/bin/parallex-tui.rs"
 required-features = ["tui-frontend"]
 
 [dependencies]

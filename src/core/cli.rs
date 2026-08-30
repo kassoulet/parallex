@@ -63,7 +63,7 @@ mod tests {
     use super::*;
 
     /// Every frontend parses the same way; the name only shapes the text.
-    const BIN: &str = "parallhex-gpui";
+    const BIN: &str = "parallex-gpui";
 
     fn launch(args: &[&str]) -> Option<PathBuf> {
         match parse_args(args.iter().map(std::string::ToString::to_string), BIN) {
@@ -129,18 +129,18 @@ mod tests {
 
     #[test]
     fn usage_names_the_calling_binary() {
-        // The name is a parameter so parallhex-tui advertises itself, not the
+        // The name is a parameter so parallex-tui advertises itself, not the
         // gpui binary; behaviour is identical either way.
         assert!(matches!(
-            parse_args(["-h".to_owned()].into_iter(), "parallhex-tui"),
+            parse_args(["-h".to_owned()].into_iter(), "parallex-tui"),
             Cli::Exit(0)
         ));
         assert!(matches!(
-            parse_args(["--bogus".to_owned()].into_iter(), "parallhex-tui"),
+            parse_args(["--bogus".to_owned()].into_iter(), "parallex-tui"),
             Cli::Exit(2)
         ));
         assert!(matches!(
-            parse_args(["f.bin".to_owned()].into_iter(), "parallhex-tui"),
+            parse_args(["f.bin".to_owned()].into_iter(), "parallex-tui"),
             Cli::Launch(Some(_))
         ));
     }

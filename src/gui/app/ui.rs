@@ -1,6 +1,6 @@
 //! View construction: the top bar, status bar, the three columns and their
 //! canvases, the jump dialog and the shared chrome helpers. These are all
-//! `impl ParallHexApp` methods (or free helpers they call), split out of
+//! `impl ParallexApp` methods (or free helpers they call), split out of
 //! `app.rs` so the state/handler module stays navigable.
 
 use gpui::{
@@ -30,9 +30,9 @@ const STRIP_H: f32 = 36.0;
 trait MouseUpAnywhere: InteractiveElement + Sized {
     fn on_mouse_up_anywhere(
         self,
-        cx: &mut Context<ParallHexApp>,
+        cx: &mut Context<ParallexApp>,
         button: MouseButton,
-        handler: impl Fn(&mut ParallHexApp, &MouseUpEvent, &mut Context<ParallHexApp>) + Clone + 'static,
+        handler: impl Fn(&mut ParallexApp, &MouseUpEvent, &mut Context<ParallexApp>) + Clone + 'static,
     ) -> Self {
         let outside = handler.clone();
         self.on_mouse_up(
@@ -56,7 +56,7 @@ const JUMP_BUTTON_LABEL: &str = if cfg!(target_os = "macos") {
     "Jump to offset… (Ctrl+G)"
 };
 
-impl ParallHexApp {
+impl ParallexApp {
     /// The hex column's scrollbar: the whole file as a track, the visible rows
     /// as a thumb. The hex column is the scroll reference, so this drives the
     /// shared anchor and the other panels follow.
@@ -311,12 +311,7 @@ impl ParallHexApp {
                                     },
                                 )
                             })
-                            .child(
-                                div()
-                                    .text_xl()
-                                    .text_color(rgb(0x7aa2f7))
-                                    .child("Parall-Hex"),
-                            )
+                            .child(div().text_xl().text_color(rgb(0x7aa2f7)).child("Parallex"))
                             .child(div().child(format!(
                                 "{file_name} · {file_size} bytes ({})",
                                 color::human_size(file_size)
@@ -655,7 +650,7 @@ impl ParallHexApp {
                         let paint_entity = entity.clone();
                         pane_canvas(
                             &entity,
-                            super::ParallHexApp::measure_zoom,
+                            super::ParallexApp::measure_zoom,
                             move |bounds, window, cx| {
                                 // The texture is rebuilt in `measure_zoom`
                                 // (prepaint) when its inputs change; the paint
@@ -1007,7 +1002,7 @@ impl ParallHexApp {
                     .on_mouse_down(
                         MouseButton::Left,
                         cx.listener(
-                            |_: &mut ParallHexApp, _: &MouseDownEvent, _: &mut Window, cx| {
+                            |_: &mut ParallexApp, _: &MouseDownEvent, _: &mut Window, cx| {
                                 // Swallow clicks on the card so the backdrop stays.
                                 cx.stop_propagation();
                             },
@@ -1162,9 +1157,9 @@ impl ParallHexApp {
 /// element holding keyboard focus). The callback receives the view, the
 /// window and a context, mirroring the `Context::listener` signature.
 fn button(
-    cx: &mut Context<ParallHexApp>,
+    cx: &mut Context<ParallexApp>,
     label: &'static str,
-    on_click: impl Fn(&mut ParallHexApp, &mut Window, &mut Context<ParallHexApp>) + 'static,
+    on_click: impl Fn(&mut ParallexApp, &mut Window, &mut Context<ParallexApp>) + 'static,
 ) -> impl IntoElement {
     div()
         .id(label)
@@ -1204,9 +1199,9 @@ fn quad_dark(bounds: Bounds<Pixels>) -> gpui::PaintQuad {
 /// pane canvas is exactly this shape; the `canvas` boilerplate (and the
 /// `.size_full()` a canvas needs because it has no intrinsic size) lives here
 /// rather than at each call site.
-fn pane_canvas<P, F>(entity: &Entity<ParallHexApp>, prepaint: P, paint: F) -> impl IntoElement
+fn pane_canvas<P, F>(entity: &Entity<ParallexApp>, prepaint: P, paint: F) -> impl IntoElement
 where
-    P: Fn(&mut ParallHexApp, Bounds<Pixels>, &mut Context<ParallHexApp>) + 'static,
+    P: Fn(&mut ParallexApp, Bounds<Pixels>, &mut Context<ParallexApp>) + 'static,
     F: Fn(Bounds<Pixels>, &mut Window, &mut App) + 'static,
 {
     let entity = entity.clone();

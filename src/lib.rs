@@ -1,4 +1,4 @@
-//! `parallhex` — a binary/hex explorer showing one byte window through three
+//! `parallex` — a binary/hex explorer showing one byte window through three
 //! synchronized columns.
 //!
 //! The crate is a library with thin binaries on top, so more than one frontend

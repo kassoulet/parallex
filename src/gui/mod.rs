@@ -20,7 +20,7 @@ use gpui::{
 // handles `Backspace` / `Delete` / `MoveLeft` / `MoveRight` / `Paste` and
 // `JumpSubmit` / `JumpCancel`.
 actions!(
-    parallhex,
+    parallex,
     [
         OpenFile,
         Quit,
@@ -60,7 +60,7 @@ actions!(
 /// `window_decorations()` reporting `Server` while *nothing* draws a titlebar,
 /// and the window cannot be moved or closed. Asking for `Client` instead keeps
 /// that state honest — `window_decorations()` reports `Client`, which is what
-/// `ParallHexApp::render` keys its own titlebar and resize edges off. On
+/// `ParallexApp::render` keys its own titlebar and resize edges off. On
 /// compositors that do implement the protocol this also declines their
 /// titlebar, so Linux gets one consistent look. macOS and Windows keep their
 /// native decorations.
@@ -141,13 +141,13 @@ pub fn run(initial_file: Option<PathBuf>) {
                 window_min_size: Some(size(px(MIN_WINDOW_W), px(MIN_WINDOW_H))),
                 window_decorations: DECORATIONS,
                 titlebar: Some(TitlebarOptions {
-                    title: Some("Parall-Hex".into()),
+                    title: Some("Parallex".into()),
                     ..Default::default()
                 }),
                 focus: true,
                 ..Default::default()
             },
-            move |window, cx| cx.new(|cx| app::ParallHexApp::new(window, cx, initial_file)),
+            move |window, cx| cx.new(|cx| app::ParallexApp::new(window, cx, initial_file)),
         )
         .unwrap();
         cx.on_window_closed(|cx| cx.quit()).detach();

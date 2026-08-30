@@ -116,7 +116,7 @@ const ZOOM_W_MAX: f32 = 3000.0;
 /// The many booleans track per-column drag/interaction bookkeeping; a
 /// state machine would add more complexity than it removes.
 #[allow(clippy::struct_excessive_bools)]
-pub struct ParallHexApp {
+pub struct ParallexApp {
     pub file_path: Option<PathBuf>,
     pub mmap: Option<Arc<Mmap>>,
     pub file_size: usize,
@@ -285,7 +285,7 @@ pub struct ParallHexApp {
     pub pending_copy: Option<String>,
 }
 
-impl ParallHexApp {
+impl ParallexApp {
     /// One initializer line per field of a large state struct keeps this just
     /// over the line-count lint; splitting it would only hide the shape.
     #[allow(clippy::too_many_lines)]
@@ -1341,13 +1341,13 @@ impl ParallHexApp {
     }
 }
 
-impl Focusable for ParallHexApp {
+impl Focusable for ParallexApp {
     fn focus_handle(&self, _: &App) -> FocusHandle {
         self.focus_handle.clone()
     }
 }
 
-impl Render for ParallHexApp {
+impl Render for ParallexApp {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let frame_start = Instant::now();
         self.capture_window_geometry(window);
@@ -1381,13 +1381,13 @@ impl Render for ParallHexApp {
         let no_file = self.mmap.is_none();
 
         let el = div()
-            .id("parallhex-root")
+            .id("parallex-root")
             .size_full()
             .flex()
             .flex_col()
             .bg(rgb(0x16161e))
             .text_color(rgb(0xc0caf5))
-            .key_context("ParallHex")
+            .key_context("Parallex")
             .track_focus(&self.focus_handle(cx))
             .on_action(cx.listener(Self::on_open_file))
             .on_action(cx.listener(Self::on_quit))
@@ -1506,7 +1506,7 @@ const RESIZE_EDGE_W: f32 = 6.0;
 /// Minimize / maximize / close, for when the app supplies its own titlebar.
 /// Closing goes through the same save-then-quit path as the Quit action so
 /// preferences are never lost to a click on the close button.
-fn window_buttons(cx: &mut Context<ParallHexApp>) -> impl IntoElement {
+fn window_buttons(cx: &mut Context<ParallexApp>) -> impl IntoElement {
     div()
         .flex()
         .items_center()
@@ -1536,7 +1536,7 @@ fn window_buttons(cx: &mut Context<ParallHexApp>) -> impl IntoElement {
 /// `on_window` runs against the window; the close button is special-cased by
 /// `danger` so it can save preferences and quit through the view.
 fn window_button(
-    cx: &mut Context<ParallHexApp>,
+    cx: &mut Context<ParallexApp>,
     id: &'static str,
     glyph: &'static str,
     danger: bool,
@@ -1570,7 +1570,7 @@ fn window_button(
 /// The eight resize affordances (four edges, then four corners) as absolutely
 /// positioned overlay children. Corners come last so they win where they
 /// overlap an edge.
-fn resize_handles(cx: &mut Context<ParallHexApp>) -> Vec<gpui::AnyElement> {
+fn resize_handles(cx: &mut Context<ParallexApp>) -> Vec<gpui::AnyElement> {
     [
         ResizeEdge::Top,
         ResizeEdge::Bottom,
@@ -1586,7 +1586,7 @@ fn resize_handles(cx: &mut Context<ParallHexApp>) -> Vec<gpui::AnyElement> {
     .collect()
 }
 
-fn resize_handle(cx: &mut Context<ParallHexApp>, edge: ResizeEdge) -> gpui::AnyElement {
+fn resize_handle(cx: &mut Context<ParallexApp>, edge: ResizeEdge) -> gpui::AnyElement {
     let cursor = match edge {
         ResizeEdge::Top | ResizeEdge::Bottom => CursorStyle::ResizeUpDown,
         ResizeEdge::Left | ResizeEdge::Right => CursorStyle::ResizeLeftRight,

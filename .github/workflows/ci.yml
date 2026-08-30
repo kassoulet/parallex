@@ -79,7 +79,7 @@ jobs:
       - name: cargo test --all-targets
         run: cargo test --locked --all-targets
 
-      # The terminal frontend exists so parallhex can run on hosts that lack
+      # The terminal frontend exists so parallex can run on hosts that lack
       # gpui's link-time libraries (freetype, xcb, xkbcommon). That only holds if
       # gpui stays out of a TUI-only build, so assert it rather than trust it.
       - name: the TUI must not depend on gpui
