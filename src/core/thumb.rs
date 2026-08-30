@@ -159,7 +159,7 @@ fn fill_row<'a>(
             let (r8, g8, b8, a8) = (c.r, c.g, c.b, 255);
             // Fill every pixel row of the block's column span.
             for row in buf.chunks_exact_mut(iw * 4).take(h) {
-                for px in row[x0 * 4..x1 * 4].chunks_exact_mut(4) {
+                for px in row[x0 * 4..x1 * 4].as_chunks_mut::<4>().0 {
                     px[0] = r8;
                     px[1] = g8;
                     px[2] = b8;

@@ -5,8 +5,8 @@
 
 use gpui::{
     App, AsyncApp, BorderStyle, Bounds, ClickEvent, Context, Corner, CursorStyle, Edges, Entity,
-    IntoElement, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels,
-    ScrollWheelEvent, WeakEntity, Window, anchored, canvas, div, point, prelude::*, px, quad, rgb,
+    InteractiveElement, IntoElement, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent,
+    Pixels, ScrollWheelEvent, WeakEntity, Window, anchored, canvas, div, point, px, quad, rgb,
     rgba, size, transparent_black,
 };
 

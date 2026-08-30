@@ -698,10 +698,8 @@ mod tests {
         let strip = strip_rgba(&data, &e, 256, Colormap::Value);
         assert_eq!(strip.len(), 256 * 4);
         assert!(strip.iter().skip(3).step_by(4).all(|&a| a == 255));
-        let distinct: std::collections::HashSet<[u8; 4]> = strip
-            .chunks_exact(4)
-            .map(|c| [c[0], c[1], c[2], c[3]])
-            .collect();
+        let distinct: std::collections::HashSet<[u8; 4]> =
+            strip.as_chunks::<4>().0.iter().copied().collect();
         assert!(
             distinct.len() > 4,
             "strip should show real content, not a flat color ({} colors)",
