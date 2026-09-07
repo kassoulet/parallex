@@ -13,14 +13,20 @@ pub fn block_entropy(data: &[u8]) -> f32 {
         counts[b as usize] += 1;
     }
     let len = data.len() as f32;
-    let mut h = 0.0;
+    // Mathematically:
+    // H = - sum_i (c_i / N) * log2(c_i / N)
+    //   = - sum_i (c_i / N) * (log2(c_i) - log2(N))
+    //   = log2(N) - (1 / N) * sum_i (c_i * log2(c_i))
+    // Factoring out log2(N) and 1/N avoids up to 256 divisions and repeated log2(N)
+    // calculations per block.
+    let mut sum_c_log_c = 0.0f32;
     for &c in &counts {
         if c > 0 {
-            let p = c as f32 / len;
-            h -= p * p.log2();
+            let cf = c as f32;
+            sum_c_log_c += cf * cf.log2();
         }
     }
-    h
+    (len.log2() - sum_c_log_c / len).max(0.0)
 }
 
 /// Entropy of every contiguous `window`-sized block of `data`. One value per
