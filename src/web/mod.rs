@@ -96,6 +96,46 @@ pub fn parallex_start() {
     load_demo_file_from_query(&window);
 }
 
+/// Validate whether a URL passed via `?file=` query parameter is safe to fetch.
+///
+/// Only HTTP, HTTPS, and relative URLs are allowed. Disallows dangerous schemes
+/// like `javascript:`, `data:`, `file:`, `blob:`, etc., as well as URLs containing
+/// inline credentials.
+pub(crate) fn is_safe_url(url: &str) -> bool {
+    let s = url.trim();
+    if s.is_empty() {
+        return false;
+    }
+    if let Some(rest) = s
+        .strip_prefix("http://")
+        .or_else(|| s.strip_prefix("https://"))
+    {
+        let host_part = rest.split('/').next().unwrap_or(rest);
+        return !host_part.contains('@');
+    }
+    let first_colon = s.find(':');
+    let first_sep = s.find(['/', '?', '#']);
+    match (first_colon, first_sep) {
+        (Some(c_idx), Some(s_idx)) => c_idx > s_idx,
+        (Some(_), None) => false,
+        (None, _) => true,
+    }
+}
+
+/// Extract a clean filename from a URL by stripping query parameters, fragments,
+/// and trailing slashes.
+pub(crate) fn sanitize_filename_from_url(url: &str) -> String {
+    let path = url.split('?').next().unwrap_or(url);
+    let path = path.split('#').next().unwrap_or(path);
+    let clean_path = path.trim_end_matches('/');
+    let filename = clean_path.rsplit('/').next().unwrap_or(clean_path);
+    if filename.is_empty() {
+        "demo.bin".to_string()
+    } else {
+        filename.to_string()
+    }
+}
+
 /// `?file=<url>` loads a file at boot, so a Pages site can link a demo binary
 /// directly and the app is testable without a file picker.
 fn load_demo_file_from_query(window: &web_sys::Window) {
@@ -103,18 +143,18 @@ fn load_demo_file_from_query(window: &web_sys::Window) {
     let Some(param) = web_sys::UrlSearchParams::new_with_str(&search)
         .ok()
         .and_then(|q| q.get("file"))
-        .filter(|s| !s.is_empty())
+        .filter(|s| !s.is_empty() && is_safe_url(s))
     else {
         return;
     };
     let future = wasm_bindgen_futures::JsFuture::from(window.fetch_with_str(&param));
     wasm_bindgen_futures::spawn_local(async move {
         let Ok(resp) = future.await else {
-            web_sys::console::error_1(&format!("fetch {param} failed").into());
+            web_sys::console::error_1(&"fetch demo file failed".into());
             return;
         };
         let resp: web_sys::Response = resp.dyn_into().expect("response");
-        let name = param.rsplit('/').next().unwrap_or(&param).to_string();
+        let name = sanitize_filename_from_url(&param);
         match wasm_bindgen_futures::JsFuture::from(resp.array_buffer().expect("array_buffer")).await
         {
             Ok(buf) => {
@@ -336,4 +376,43 @@ fn app_key(e: &KeyboardEvent) -> bool {
     };
     with_app(|app| app.navigate(nav));
     true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_safe_url_allows_valid_schemes() {
+        assert!(is_safe_url("https://example.com/demo.bin"));
+        assert!(is_safe_url("http://example.com/demo.bin"));
+        assert!(is_safe_url("demo.bin"));
+        assert!(is_safe_url("./samples/libc.so.6"));
+        assert!(is_safe_url("/files/test.bin"));
+    }
+
+    #[test]
+    fn test_is_safe_url_rejects_unsafe_schemes_and_credentials() {
+        assert!(!is_safe_url("javascript:alert(1)"));
+        assert!(!is_safe_url("data:text/plain;base64,123"));
+        assert!(!is_safe_url("file:///etc/passwd"));
+        assert!(!is_safe_url("blob:http://example.com/uuid"));
+        assert!(!is_safe_url("ftp://example.com/file"));
+        assert!(!is_safe_url("http://user:pass@example.com/test.bin"));
+        assert!(!is_safe_url(""));
+    }
+
+    #[test]
+    fn test_sanitize_filename_from_url() {
+        assert_eq!(
+            sanitize_filename_from_url("https://example.com/path/demo.bin?token=secret#top"),
+            "demo.bin"
+        );
+        assert_eq!(
+            sanitize_filename_from_url("http://example.com/samples/"),
+            "samples"
+        );
+        assert_eq!(sanitize_filename_from_url("demo.bin"), "demo.bin");
+        assert_eq!(sanitize_filename_from_url(""), "demo.bin");
+    }
 }
