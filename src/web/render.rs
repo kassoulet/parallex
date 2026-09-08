@@ -22,7 +22,6 @@ const BOLD_FONT: &str = "bold 12px system-ui, sans-serif";
 const BG: &str = "#16161e";
 const PANEL_BG: &str = "#0c0d14";
 const DIVIDER_BG: &str = "#1a1b26";
-const TEXT: &str = "#c0caf5";
 const MUTED: &str = "#565f89";
 const ACCENT: &str = "#9d7cd8";
 const SEL_OVERLAY: &str = "rgba(255,255,255,0.24)";

@@ -5,7 +5,7 @@
 use std::ops::Range;
 
 use super::layout::{self, Divider};
-use crate::core::color::{Colormap, Rgb, human_size};
+use crate::core::color::{Colormap, human_size};
 use crate::core::geom::{self, Nav};
 
 /// Entropy window for the web build. The desktop frontends make it a
@@ -355,12 +355,6 @@ impl App {
     }
 
     // ----- render support --------------------------------------------------
-
-    /// The color of the byte at `off` under a column's colormap.
-    pub(crate) fn color_at(&self, panel: usize, off: usize) -> Option<Rgb> {
-        let src = self.byte_source(self.colormaps[panel]);
-        src.color_at(off)
-    }
 
     /// Status-bar summary, rendered by `render`.
     pub(crate) fn status_text(&self) -> String {
