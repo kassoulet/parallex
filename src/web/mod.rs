@@ -106,19 +106,27 @@ pub(crate) fn is_safe_url(url: &str) -> bool {
     if s.is_empty() {
         return false;
     }
-    if let Some(rest) = s
+    let lower = s.to_ascii_lowercase();
+    if let Some(rest) = lower
         .strip_prefix("http://")
-        .or_else(|| s.strip_prefix("https://"))
+        .or_else(|| lower.strip_prefix("https://"))
     {
-        let host_part = rest.split('/').next().unwrap_or(rest);
+        let host_part = rest.split(['/', '?', '#']).next().unwrap_or(rest);
         return !host_part.contains('@');
     }
-    let first_colon = s.find(':');
-    let first_sep = s.find(['/', '?', '#']);
+    if let Some(rest) = lower.strip_prefix("//") {
+        let host_part = rest.split(['/', '?', '#']).next().unwrap_or(rest);
+        return !host_part.contains('@');
+    }
+    let first_colon = lower.find(':');
+    let first_sep = lower.find(['/', '?', '#']);
     match (first_colon, first_sep) {
         (Some(c_idx), Some(s_idx)) => c_idx > s_idx,
         (Some(_), None) => false,
-        (None, _) => true,
+        (None, _) => {
+            let host_part = s.split(['/', '?', '#']).next().unwrap_or(s);
+            !host_part.contains('@')
+        }
     }
 }
 
@@ -386,6 +394,9 @@ mod tests {
     fn test_is_safe_url_allows_valid_schemes() {
         assert!(is_safe_url("https://example.com/demo.bin"));
         assert!(is_safe_url("http://example.com/demo.bin"));
+        assert!(is_safe_url("HTTPS://example.com/demo.bin"));
+        assert!(is_safe_url("HTTP://example.com/demo.bin"));
+        assert!(is_safe_url("//example.com/demo.bin"));
         assert!(is_safe_url("demo.bin"));
         assert!(is_safe_url("./samples/libc.so.6"));
         assert!(is_safe_url("/files/test.bin"));
@@ -394,11 +405,15 @@ mod tests {
     #[test]
     fn test_is_safe_url_rejects_unsafe_schemes_and_credentials() {
         assert!(!is_safe_url("javascript:alert(1)"));
+        assert!(!is_safe_url("JAVASCRIPT:alert(1)"));
         assert!(!is_safe_url("data:text/plain;base64,123"));
         assert!(!is_safe_url("file:///etc/passwd"));
         assert!(!is_safe_url("blob:http://example.com/uuid"));
         assert!(!is_safe_url("ftp://example.com/file"));
         assert!(!is_safe_url("http://user:pass@example.com/test.bin"));
+        assert!(!is_safe_url("HTTPS://user:pass@example.com/test.bin"));
+        assert!(!is_safe_url("//user:pass@example.com/test.bin"));
+        assert!(!is_safe_url("user:pass@example.com/test.bin"));
         assert!(!is_safe_url(""));
     }
 
