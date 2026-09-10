@@ -131,16 +131,22 @@ pub(crate) fn is_safe_url(url: &str) -> bool {
 }
 
 /// Extract a clean filename from a URL by stripping query parameters, fragments,
-/// and trailing slashes.
+/// and trailing slashes/backslashes, filtering control chars, and guarding against
+/// path traversal (`.`, `..`).
 pub(crate) fn sanitize_filename_from_url(url: &str) -> String {
     let path = url.split('?').next().unwrap_or(url);
     let path = path.split('#').next().unwrap_or(path);
-    let clean_path = path.trim_end_matches('/');
-    let filename = clean_path.rsplit('/').next().unwrap_or(clean_path);
-    if filename.is_empty() {
+    let clean_path = path.trim_end_matches(|c| c == '/' || c == '\\');
+    let raw_filename = clean_path
+        .rsplit(|c| c == '/' || c == '\\')
+        .next()
+        .unwrap_or(clean_path);
+    let filename: String = raw_filename.chars().filter(|c| !c.is_control()).collect();
+    let trimmed = filename.trim();
+    if trimmed.is_empty() || trimmed == "." || trimmed == ".." {
         "demo.bin".to_string()
     } else {
-        filename.to_string()
+        trimmed.to_string()
     }
 }
 
@@ -429,5 +435,37 @@ mod tests {
         );
         assert_eq!(sanitize_filename_from_url("demo.bin"), "demo.bin");
         assert_eq!(sanitize_filename_from_url(""), "demo.bin");
+
+        // Path traversal and directory components
+        assert_eq!(sanitize_filename_from_url(".."), "demo.bin");
+        assert_eq!(sanitize_filename_from_url("."), "demo.bin");
+        assert_eq!(
+            sanitize_filename_from_url("https://example.com/path/.."),
+            "demo.bin"
+        );
+        assert_eq!(
+            sanitize_filename_from_url("https://example.com/path/."),
+            "demo.bin"
+        );
+
+        // Windows backslash path separators
+        assert_eq!(
+            sanitize_filename_from_url("https://example.com/path\\sub\\test.bin"),
+            "test.bin"
+        );
+        assert_eq!(
+            sanitize_filename_from_url("..\\..\\secret.bin"),
+            "secret.bin"
+        );
+
+        // Control characters
+        assert_eq!(
+            sanitize_filename_from_url("https://example.com/path/file\0name.bin"),
+            "filename.bin"
+        );
+        assert_eq!(
+            sanitize_filename_from_url("file\r\nname.bin"),
+            "filename.bin"
+        );
     }
 }
