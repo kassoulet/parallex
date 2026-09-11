@@ -197,13 +197,17 @@ pub(crate) enum CopyKind {
     Ascii,
 }
 
+/// Maximum number of bytes allowed in a single copy operation (1 MiB) to prevent
+/// memory exhaustion / Denial of Service.
+pub(crate) const MAX_COPY_BYTES: usize = 1_048_576;
+
 /// Render `range` of `data` for the clipboard, or `None` when the range is
-/// empty after clamping to the file. Shared by the copy actions and the hex
-/// column's right-click copy so the two can't drift apart.
+/// empty after clamping to the file or exceeds `MAX_COPY_BYTES`. Shared by the
+/// copy actions and the hex column's right-click copy so the two can't drift apart.
 pub(crate) fn selection_text(data: &[u8], range: &Range<usize>, kind: CopyKind) -> Option<String> {
     let start = range.start.min(data.len());
     let end = range.end.min(data.len());
-    if start >= end {
+    if start >= end || end - start > MAX_COPY_BYTES {
         return None;
     }
     let bytes = &data[start..end];
@@ -218,8 +222,12 @@ pub(crate) fn selection_text(data: &[u8], range: &Range<usize>, kind: CopyKind) 
 }
 
 /// Parse a user-supplied offset as hex: `0x` prefix optional, underscores
-/// and whitespace allowed (e.g. `"0x1_000"`, `"1F"`).
+/// and whitespace allowed (e.g. `"0x1_000"`, `"1F"`). Rejects inputs longer
+/// than 128 characters to prevent Denial of Service / excessive allocation.
 pub(crate) fn parse_offset(input: &str) -> Option<usize> {
+    if input.len() > 128 {
+        return None;
+    }
     let s = input.trim().replace('_', "");
     if s.is_empty() {
         return None;
@@ -556,6 +564,12 @@ mod tests {
     }
 
     #[test]
+    fn parse_offset_rejects_overly_long_input() {
+        let long_input = "0x".to_string() + &"1".repeat(130);
+        assert_eq!(parse_offset(&long_input), None);
+    }
+
+    #[test]
     fn parse_hex_with_prefix() {
         assert_eq!(parse_offset("0x1F"), Some(31));
         assert_eq!(parse_offset("0X1000"), Some(4096));
@@ -586,6 +600,16 @@ mod tests {
         assert_eq!(selection_text(data, &(2..2), CopyKind::Hex), None);
         assert_eq!(selection_text(data, &(900..901), CopyKind::Hex), None);
         assert_eq!(selection_text(&[], &(0..4), CopyKind::Ascii), None);
+    }
+
+    #[test]
+    fn selection_text_enforces_max_copy_bytes() {
+        let data = vec![0x41u8; MAX_COPY_BYTES + 10];
+        assert!(selection_text(&data, &(0..MAX_COPY_BYTES), CopyKind::Ascii).is_some());
+        assert_eq!(
+            selection_text(&data, &(0..MAX_COPY_BYTES + 1), CopyKind::Ascii),
+            None
+        );
     }
 
     /// `navigate` in the gpui frontend clamps a stale cursor before delegating,
