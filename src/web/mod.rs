@@ -130,8 +130,12 @@ pub(crate) fn is_safe_url(url: &str) -> bool {
     }
 }
 
+/// Maximum allowed filename length to prevent UI layout overflow or DoS.
+const MAX_FILENAME_LEN: usize = 255;
+
 /// Extract a clean filename from a URL by stripping query parameters, fragments,
-/// and trailing slashes/backslashes, filtering control chars, and guarding against
+/// and trailing slashes/backslashes, filtering control chars and HTML special chars
+/// (`<`, `>`, `"`, `'`, `&`), enforcing a maximum length, and guarding against
 /// path traversal (`.`, `..`).
 pub(crate) fn sanitize_filename_from_url(url: &str) -> String {
     let path = url.split('?').next().unwrap_or(url);
@@ -141,7 +145,11 @@ pub(crate) fn sanitize_filename_from_url(url: &str) -> String {
         .rsplit(|c| c == '/' || c == '\\')
         .next()
         .unwrap_or(clean_path);
-    let filename: String = raw_filename.chars().filter(|c| !c.is_control()).collect();
+    let filename: String = raw_filename
+        .chars()
+        .filter(|c| !c.is_control() && !matches!(c, '<' | '>' | '"' | '\'' | '&'))
+        .take(MAX_FILENAME_LEN)
+        .collect();
     let trimmed = filename.trim();
     if trimmed.is_empty() || trimmed == "." || trimmed == ".." {
         "demo.bin".to_string()
@@ -467,5 +475,18 @@ mod tests {
             sanitize_filename_from_url("file\r\nname.bin"),
             "filename.bin"
         );
+
+        // HTML special characters / XSS prevention
+        assert_eq!(
+            sanitize_filename_from_url("https://example.com/<script>alert(1).bin"),
+            "scriptalert(1).bin"
+        );
+        assert_eq!(sanitize_filename_from_url("file\"'&\n.bin"), "file.bin");
+
+        // Length truncation
+        let long_name = "a".repeat(300) + ".bin";
+        let sanitized = sanitize_filename_from_url(&long_name);
+        assert_eq!(sanitized.len(), MAX_FILENAME_LEN);
+        assert_eq!(sanitized, "a".repeat(MAX_FILENAME_LEN));
     }
 }
