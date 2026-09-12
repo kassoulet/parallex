@@ -481,10 +481,7 @@ mod tests {
             sanitize_filename_from_url("https://example.com/<script>alert(1).bin"),
             "scriptalert(1).bin"
         );
-        assert_eq!(
-            sanitize_filename_from_url("file\"'&\n.bin"),
-            "file.bin"
-        );
+        assert_eq!(sanitize_filename_from_url("file\"'&\n.bin"), "file.bin");
 
         // Length truncation
         let long_name = "a".repeat(300) + ".bin";
