@@ -130,7 +130,7 @@ pub(crate) fn is_safe_url(url: &str) -> bool {
     }
 }
 
-/// Maximum allowed filename length to prevent UI layout overflow or DoS.
+/// Maximum allowed filename length to prevent UI layout overflow or `DoS`.
 const MAX_FILENAME_LEN: usize = 255;
 
 /// Extract a clean filename from a URL by stripping query parameters, fragments,
@@ -140,11 +140,8 @@ const MAX_FILENAME_LEN: usize = 255;
 pub(crate) fn sanitize_filename_from_url(url: &str) -> String {
     let path = url.split('?').next().unwrap_or(url);
     let path = path.split('#').next().unwrap_or(path);
-    let clean_path = path.trim_end_matches(|c| c == '/' || c == '\\');
-    let raw_filename = clean_path
-        .rsplit(|c| c == '/' || c == '\\')
-        .next()
-        .unwrap_or(clean_path);
+    let clean_path = path.trim_end_matches(['/', '\\']);
+    let raw_filename = clean_path.rsplit(['/', '\\']).next().unwrap_or(clean_path);
     let filename: String = raw_filename
         .chars()
         .filter(|c| !c.is_control() && !matches!(c, '<' | '>' | '"' | '\'' | '&'))
