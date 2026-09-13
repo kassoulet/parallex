@@ -10,7 +10,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::core::color::Colormap;
-use crate::core::geom::PIXEL_ZOOM_DEFAULT;
+use crate::core::geom::{ENTROPY_WINDOW_MAX, ENTROPY_WINDOW_MIN, PIXEL_ZOOM_DEFAULT};
 
 /// UI preferences that survive across sessions.
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -105,8 +105,8 @@ pub fn parse(text: &str) -> Config {
         let value = value.trim();
         match key.trim() {
             "entropy_window" => {
-                if let Ok(n) = value.parse() {
-                    cfg.entropy_window = n;
+                if let Ok(n) = value.parse::<usize>() {
+                    cfg.entropy_window = n.clamp(ENTROPY_WINDOW_MIN, ENTROPY_WINDOW_MAX);
                 }
             }
             "pixel_zoom" => {
@@ -308,6 +308,8 @@ mod tests {
     fn parse_entropy_window() {
         assert_eq!(parse("entropy_window = 1024").entropy_window, 1024);
         assert_eq!(parse("entropy_window = abc").entropy_window, 256);
+        assert_eq!(parse("entropy_window = 0").entropy_window, 16);
+        assert_eq!(parse("entropy_window = 99999").entropy_window, 4096);
     }
 
     #[test]
